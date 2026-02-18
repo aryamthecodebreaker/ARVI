@@ -56,11 +56,14 @@ export async function POST(request: Request) {
     where: { userId: session.user.id },
   });
 
-  // Build system prompt with preferences
-  const systemPrompt = ARVI_SYSTEM_PROMPT.replace(
-    "{USER_PREFERENCES}",
-    formatPreferences(preferences)
-  );
+  // Build system prompt with preferences and language
+  const languageInstruction = preferences?.preferredLanguage
+    ? `The user prefers ${preferences.preferredLanguage}. Respond in ${preferences.preferredLanguage}.`
+    : "Detect the language from the user's messages and respond in the same language.";
+
+  const systemPrompt = ARVI_SYSTEM_PROMPT
+    .replace("{USER_PREFERENCES}", formatPreferences(preferences))
+    .replace("{USER_LANGUAGE}", languageInstruction);
 
   // Build Gemini conversation history
   const geminiContents = buildGeminiContents(history);

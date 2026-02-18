@@ -32,6 +32,9 @@ export function formatPreferences(prefs: UserPreference | null): string {
   if (prefs.pricePreference) {
     parts.push(`Price sensitivity: ${prefs.pricePreference}`);
   }
+  if (prefs.preferredLanguage) {
+    parts.push(`Preferred language: ${prefs.preferredLanguage}`);
+  }
   if (prefs.rawPreferences) {
     parts.push(
       `Other known preferences: ${JSON.stringify(prefs.rawPreferences)}`
@@ -63,6 +66,7 @@ Return a JSON object with these fields (only include fields where you detected a
   "brands": ["brand1", "brand2"] or [],
   "categories": ["category1"] or [],
   "pricePreference": "budget" | "mid-range" | "premium" | null,
+  "language": "the language the user is writing in, e.g. English, Hindi, Tamil, Telugu, Marathi, Bengali, Hinglish, etc." or null,
   "otherPreferences": {} or {"key": "value"}
 }
 
@@ -80,7 +84,8 @@ Return ONLY the JSON object, no markdown, no explanation.`,
       !extracted.budgetMax &&
       (!extracted.brands || extracted.brands.length === 0) &&
       (!extracted.categories || extracted.categories.length === 0) &&
-      !extracted.pricePreference
+      !extracted.pricePreference &&
+      !extracted.language
     ) {
       return;
     }
@@ -98,6 +103,7 @@ Return ONLY the JSON object, no markdown, no explanation.`,
         preferredBrands: extracted.brands || [],
         categories: extracted.categories || [],
         pricePreference: extracted.pricePreference || null,
+        preferredLanguage: extracted.language || null,
         rawPreferences: (extracted.otherPreferences || {}) as object,
       },
       update: {
@@ -112,6 +118,7 @@ Return ONLY the JSON object, no markdown, no explanation.`,
           extracted.categories || []
         ),
         pricePreference: extracted.pricePreference || existing?.pricePreference,
+        preferredLanguage: extracted.language || existing?.preferredLanguage,
         rawPreferences: mergeJson(
           existing?.rawPreferences,
           extracted.otherPreferences

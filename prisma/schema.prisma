@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// NextAuth Required Models
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  chats         Chat[]
+  productClicks ProductClick[]
+  preferences   UserPreference?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// Arvi Application Models
+// ============================================
+
+model Chat {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("New Chat")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  chatId    String
+  role      MessageRole
+  content   String      @db.Text
+  createdAt DateTime    @default(now())
+
+  chat     Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@index([chatId])
+  @@index([createdAt])
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  messageId   String
+  asin        String
+  title       String
+  price       Float?
+  priceString String?
+  image       String?
+  url         String
+  rating      Float?
+  reviewCount Int?
+  isPrime     Boolean  @default(false)
+  summary     String?  @db.Text
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  message Message        @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  clicks  ProductClick[]
+
+  @@index([messageId])
+  @@index([asin])
+}
+
+model ProductClick {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([productId])
+}
+
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  budgetMin       Float?
+  budgetMax       Float?
+  preferredBrands String[] @default([])
+  categories      String[] @default([])
+  pricePreference String?
+  rawPreferences  Json?
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
